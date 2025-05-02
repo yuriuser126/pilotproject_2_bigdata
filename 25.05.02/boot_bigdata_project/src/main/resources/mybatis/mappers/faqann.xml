@@ -1,0 +1,112 @@
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.boot.dao.FaqannDAO">
+	
+	<sql id="criteria">
+	  <where>
+	    <if test='type == "T" and keyword != null and keyword != ""'>
+	      AND title LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	    <if test='type == "C" and keyword != null and keyword != ""'>
+	      AND content LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	    <if test='(type == null or type == "") and keyword != null and keyword != ""'>
+	      AND (title LIKE CONCAT('%', #{keyword}, '%')
+	        OR content LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	  </where>
+	</sql>
+	
+	<sql id="criteria_noitce">
+	  <where>
+	    <if test='type == "T" and keyword != null and keyword != ""'>
+	      AND question LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	    <if test='type == "C" and keyword != null and keyword != ""'>
+	      AND answer LIKE CONCAT('%', #{keyword}, '%')
+	    </if>
+	    <if test='(type == null or type == "") and keyword != null and keyword != ""'>
+	      AND (question LIKE CONCAT('%', #{keyword}, '%')
+	        OR answer LIKE CONCAT('%', #{keyword}, '%'))
+	    </if>
+	  </where>
+	</sql>
+
+    <select id="announcelistWithPaging" resultType="com.boot.dto.AnnounceDTO">
+	  SELECT id, title, content, created_at
+	  FROM (
+	    SELECT rownum AS rnum, id, title, content, created_at
+	    FROM (
+	      SELECT ROW_NUMBER() OVER (ORDER BY id DESC) AS rownum,
+	             id, title, content, created_at
+	      FROM announce
+	      <include refid="criteria"/>
+	      ORDER BY id DESC
+	    ) a
+	    WHERE rownum &lt;= (#{pageNum} * #{amount})
+	  ) aa
+	  WHERE rnum &gt; (#{pageNum} - 1) * #{amount}
+	</select>
+
+    
+    <select id="announcegetTotalCount" resultType="int">
+	  SELECT COUNT(*) FROM announce
+	  <include refid="criteria"/>
+	</select>
+
+    
+<!--    <insert id="write">-->
+<!--    	insert into tbl_board(boardName, boardTitle, boardContent) values(#{boardName},#{boardTitle},#{boardContent})-->
+<!--    </insert>-->
+
+    <insert id="announce_write_ok">
+    	INSERT INTO announce (title, content)
+    	VALUES (#{title}, #{content});
+    </insert>
+    
+    <insert id="notice_write_ok">
+    	INSERT INTO faqs (question, answer)
+    	VALUES (#{question}, #{answer});
+    </insert>
+    
+    <select id="noticelistWithPaging" resultType="com.boot.dto.FaqsDTO">
+	  SELECT id, question, answer, created_at
+	  FROM (
+	    SELECT rownum AS rnum, id, question, answer, created_at
+	    FROM (
+	      SELECT ROW_NUMBER() OVER (ORDER BY id DESC) AS rownum,
+	             id, question, answer, created_at
+	      FROM faqs
+	      <include refid="criteria_noitce"/>
+	      ORDER BY id DESC
+	    ) a
+	    WHERE rownum &lt;= (#{pageNum} * #{amount})
+	  ) aa
+	  WHERE rnum &gt; (#{pageNum} - 1) * #{amount}
+	</select>
+    
+    <select id="noticegetTotalCount" resultType="int">
+	  SELECT COUNT(*) FROM faqs
+	  <include refid="criteria_noitce"/>
+	</select>
+	
+    <select id="announce_view" resultType="com.boot.dto.AnnounceDTO">
+        select id, title, content, created_at
+          from announce 
+         where id=#{id}
+    </select>
+
+<!--    <update id="modify">-->
+<!--    	update tbl_board set boardName=#{boardName}, boardTitle=#{boardTitle}, boardContent=#{boardContent} where boardNo=#{boardNo}-->
+<!--    </update>-->
+
+<!--    <update id="delete">-->
+<!--    	delete from tbl_board where boardNo=#{boardNo}-->
+<!--    </update>-->
+    
+</mapper>
+
+
+

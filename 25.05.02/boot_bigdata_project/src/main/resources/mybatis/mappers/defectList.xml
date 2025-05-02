@@ -1,0 +1,37 @@
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.boot.dao.DefectListDAO">
+
+    <select id="defectList" resultType="com.boot.dto.DefectListDTO">
+        select id, reporter_name, report_type, car_model, report_date from defect_reports
+    </select>
+    
+	<select id="defectView" resultType="com.boot.dto.DefectListDTO">
+        select id, reporter_name, report_type, car_model, report_date, car_manufacturer, car_manufacturing_date from defect_reports 
+         where id=#{id}
+    </select>
+    
+    <select id="getById" resultType="com.boot.dto.DefectListDTO">
+        select * from defect_reports where id=#{id}
+    </select>
+
+    
+    <select id="defect_modify" resultType="com.boot.dto.DefectListDTO">
+        select id, reporter_name, report_type, car_model, report_date, car_manufacturer, car_manufacturing_date from defect_reports 
+         where id=#{id}
+    </select>
+
+    <update id="modify">
+    	update defect_reports set report_type=#{report_type}, car_model=#{car_model}, car_manufacturer=#{car_manufacturer}, car_manufacturing_date=#{car_manufacturing_date} where id=#{id}
+    </update>
+
+    <update id="delete">
+    	delete from defect_reports where id=#{id}
+    </update>
+    
+</mapper>
+
+
+

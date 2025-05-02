@@ -1,0 +1,61 @@
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+
+<mapper namespace="com.boot.dao.PageDAO">
+
+	<sql id="criteria">
+
+	<where>
+		<if test='type == "T" and keyword != null and keyword != ""'>
+			and car_model like concat('%',#{keyword},'%')
+		</if>
+		<if test='type == "C"  and keyword != null and keyword != ""'>
+			and report_type like concat('%',#{keyword},'%') 
+		</if>
+		<if test='type == "W"  and keyword != null and keyword != ""'>
+			and reporter_name like concat('%',#{keyword},'%') 
+		</if>
+		<if test='(type == null or type =="")  and keyword != null and keyword != ""'>
+			and (car_model like concat('%',#{keyword},'%')
+			or report_type like concat('%',#{keyword},'%')
+			or reporter_name like concat('%',#{keyword},'%')
+			) 
+		</if>
+		<if test='reportDate != null and reportDate !=""'>
+			and DATE(report_date)= #{reportDate}
+		</if>
+		</where>	
+				
+	</sql>
+
+	
+    <select id="listWithPaging" resultType="com.boot.dto.DefectListDTO">
+	 <!--<![CDATA[ ]]> my batis 에서 특수문자 인식 처리 ! -->
+    	<![CDATA[
+			select id, reporter_name, report_type, car_model, report_date 
+				from ( select rownum , id, reporter_name, report_type, car_model, report_date
+					 from( select row_number() over(order by id desc) as rownum
+								, id, reporter_name, report_type, car_model, report_date
+							 from DEFECT_REPORTS
+							 ]]>
+							 <include refid="criteria"></include>
+							 <![CDATA[
+							order by id desc
+						 ) a
+					where rownum <= (#{pageNum} * #{amount})
+				) aa
+			where rownum > (#{pageNum}-1)* #{amount}
+		]]>
+    </select>
+    
+    <select id="getTotalCount" resultType="int">
+		select count(*)	from DEFECT_REPORTS <include refid="criteria"></include>
+    </select>
+    
+</mapper>
+
+
+

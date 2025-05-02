@@ -1,0 +1,158 @@
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.boot.dao.RecallStaticDAO">
+
+	<sql id="yearRange">
+	    <where>
+	        <if test="start_year != null and end_year != null">
+	        	/* yearRange 조건 진입함 */
+	            YEAR(report_date) BETWEEN #{start_year} AND #{end_year}
+	        </if>
+	        <if test="start_year != null and end_year == null">
+	            YEAR(report_date) &gt;= #{start_year}
+	        </if>
+	        <if test="start_year == null and end_year != null">
+	            YEAR(report_date) &lt;= #{end_year}
+	        </if>
+	    </where>
+	</sql>
+	
+	<sql id="dateRange">
+	    <where>
+	        <if test="start_year != null and start_month != null and end_year != null and end_month != null">
+    			report_date BETWEEN 
+		      STR_TO_DATE(CONCAT(#{start_year}, '-', LPAD(#{start_month}, 2, '0'), '-01'), '%Y-%m-%d')
+		      AND 
+		      LAST_DAY(STR_TO_DATE(CONCAT(#{end_year}, '-', LPAD(#{end_month}, 2, '0'), '-01'), '%Y-%m-%d'))
+	        </if>
+	
+	        <if test="start_year != null and start_month != null and (end_year == null or end_month == null)">
+	            report_date &gt;= STR_TO_DATE(CONCAT(#{start_year}, '-', LPAD(#{start_month}, 2, '0'), '-01'), '%Y-%m-%d')
+	        </if>
+	
+	        <if test="end_year != null and end_month != null and (start_year == null or start_month == null)">
+	            report_date &lt;= LAST_DAY(STR_TO_DATE(CONCAT(#{end_year}, '-', LPAD(#{end_month}, 2, '0'), '-01'), '%Y-%m-%d'))
+	        </if>
+	
+	        <if test="start_year == null and end_year == null and start_month == null and end_month == null">
+	            1 = 1
+	        </if>
+	    </where>
+	</sql>
+	
+    <select id="getdefect_reports_count" resultType="com.boot.dto.DefectReportSummaryDTO" parameterType="map">
+<!--		SELECT COUNT(*) -->
+<!--		FROM defect_reports-->
+<!--		<include refid="yearRange"></include>-->
+		SELECT 
+		  '계' AS label,
+		  COUNT(DISTINCT CASE 
+		      WHEN car_manufacturer IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') 
+		      THEN car_model 
+		  END) AS domesticModelCount,
+		  COUNT(CASE 
+		      WHEN car_manufacturer IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') 
+		      THEN 1 
+		  END) AS domesticCount,
+		  COUNT(DISTINCT CASE 
+		      WHEN car_manufacturer NOT IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') 
+		      THEN car_model 
+		  END) AS importedModelCount,
+		  COUNT(CASE 
+		      WHEN car_manufacturer NOT IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') 
+		      THEN 1 
+		  END) AS importedCount,
+		  COUNT(DISTINCT car_model) AS totalModelCount,
+		  COUNT(*) AS totalCount
+		FROM defect_reports
+		<include refid="yearRange"></include>
+    </select>
+    
+    <select id="getDefectReportSummaryByYear" resultType="com.boot.dto.DefectReportSummaryDTO" parameterType="map">
+   	 /* getDefectReportSummaryByYear 진입함 */
+	    SELECT 
+	      YEAR(report_date) AS report_year,
+	      COUNT(DISTINCT CASE 
+	          WHEN car_manufacturer IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN car_model 
+	      END) AS domesticModelCount,
+	      COUNT(CASE 
+	          WHEN car_manufacturer IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN 1 
+	      END) AS domesticCount,
+	      COUNT(DISTINCT CASE 
+	          WHEN car_manufacturer NOT IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN car_model 
+	      END) AS importedModelCount,
+	      COUNT(CASE 
+	          WHEN car_manufacturer NOT IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN 1 
+	      END) AS importedCount,
+	      COUNT(DISTINCT car_model) AS totalModelCount,
+	      COUNT(*) AS totalCount
+	    FROM defect_reports
+	    <include refid="yearRange"></include>
+	    GROUP BY report_year
+	    ORDER BY report_year
+	</select>
+	
+	<select id="getYearlyRecallStats" resultType="com.boot.dto.ManufacturerRecallDTO">
+	  SELECT
+	    DATE_FORMAT(report_date, '%Y') AS reportYear,
+	    car_manufacturer,
+	    COUNT(*) AS recallCount
+	  FROM defect_reports
+	  WHERE car_manufacturer IN
+	    ('Hyundai','Kia','Renault Samsung','Chevrolet','Genesis',
+	     'BMW','Stellantis','Mercedes-Benz','Volvo Cars','Porsche','Tesla')
+	  <if test="startYear != null and endYear != null">
+	    AND YEAR(report_date) BETWEEN #{startYear} AND #{endYear}
+	  </if>
+	  GROUP BY reportYear, car_manufacturer
+	  ORDER BY car_manufacturer, reportYear
+	</select>
+	
+	<select id="getDefectReportSummaryByMonth" resultType="com.boot.dto.DefectReportSummaryDTO">
+		/* getDefectReportSummaryByMonth 진입함 */
+		  SELECT 
+	  	  DATE_FORMAT(report_date, '%Y-%m') AS report_month,
+	      COUNT(DISTINCT CASE 
+	          WHEN car_manufacturer IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN car_model 
+	      END) AS domesticModelCount,
+	      COUNT(CASE 
+	          WHEN car_manufacturer IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN 1 
+	      END) AS domesticCount,
+	      COUNT(DISTINCT CASE 
+	          WHEN car_manufacturer NOT IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN car_model 
+	      END) AS importedModelCount,
+	      COUNT(CASE 
+	          WHEN car_manufacturer NOT IN ('Hyundai', 'Kia', 'Genesis', 'Renault Samsung') THEN 1 
+	      END) AS importedCount,
+	      COUNT(DISTINCT car_model) AS totalModelCount,
+	      COUNT(*) AS totalCount
+	    FROM defect_reports
+	    <include refid="dateRange"></include>
+	    GROUP BY report_month
+	    ORDER BY report_month;
+	</select>
+	
+	<select id="getYearlyRecallStatsByMonth" resultType="com.boot.dto.ManufacturerRecallDTO">
+	    /* getYearlyRecallStatsByMonth 진입함 */
+	    SELECT 
+	        DATE_FORMAT(report_date, '%Y-%m') AS report_month,
+	        car_manufacturer,
+	        COUNT(*) AS recallCount
+	    FROM defect_reports
+	    WHERE car_manufacturer IN
+	        ('Hyundai','Kia','Renault Samsung','Chevrolet','Genesis',
+	         'BMW','Stellantis','Mercedes-Benz','Volvo Cars','Porsche','Tesla')
+	    <if test="start_year != null and start_month != null and end_year != null and end_month != null">
+	        AND report_date BETWEEN 
+	        STR_TO_DATE(CONCAT(#{start_year}, '-', LPAD(#{start_month}, 2, '0'), '-01'), '%Y-%m-%d')
+	        AND 
+	        LAST_DAY(STR_TO_DATE(CONCAT(#{end_year}, '-', LPAD(#{end_month}, 2, '0'), '-01'), '%Y-%m-%d'))
+	    </if>
+	    GROUP BY report_month, car_manufacturer
+	    ORDER BY car_manufacturer, report_month
+	</select>
+
+
+</mapper>
